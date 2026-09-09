@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security+ Arcade — SY0-701 Study Game</title>
+<style>
+  :root {
+    --bg: #0B0F14;
+    --panel: #12181F;
+    --panel-raised: #171F28;
+    --border: #232D38;
+    --text: #E8ECEF;
+    --text-dim: #8B95A1;
+    --amber: #FFB627;
+    --amber-dim: #7A5E1F;
+    --good: #3ECF8E;
+    --bad: #FF4F6D;
+    --font-display: 'Courier New', Courier, monospace;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .crt-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.02) 0px,
+      rgba(255,255,255,0.02) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    z-index: 999;
+  }
+
+  #app {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+
+  .marquee {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .marquee h1 {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 6vw, 42px);
+    letter-spacing: 4px;
+    color: var(--amber);
+    text-shadow: 0 0 6px rgba(255,182,39,0.5), 0 0 18px rgba(255,182,39,0.25);
+    margin: 0 0 8px;
+    animation: powerOn 1.1s ease-out;
+  }
+
+  @keyframes powerOn {
+    0% { opacity: 0; letter-spacing: 14px; filter: brightness(2.5); }
+    60% { opacity: 1; }
+    100% { opacity: 1; letter-spacing: 4px; filter: brightness(1); }
+  }
+
+  .marquee p {
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: var(--text-dim);
+    margin: 0;
+    letter-spacing: 1px;
+  }
+
+  #arcadeFloor {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 560px) {
+    #arcadeFloor { grid-template-columns: 1fr; }
+  }
+
+  .cabinet {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cabinet-marquee {
+    background: var(--amber);
+    color: #1a1200;
+    font-family: var(--font-display);
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+    padding: 8px 12px;
+    text-align: center;
+  }
+
+  .cabinet-screen {
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .cabinet-screen p {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .highscore {
+    font-family: var(--font-display);
+    font-size: 12px;
+    color: var(--amber-dim);
+  }
+
+  button {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--panel-raised);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    cursor: pointer;
+  }
+
+  button:hover:not(:disabled) {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .play-btn {
+    background: var(--amber);
+    color: #1a1200;
+    border: none;
+    margin-top: auto;
+  }
+
+  .play-btn:hover:not(:disabled) {
+    filter: brightness(1.1);
+    color: #1a1200;
+  }
+
+  #gameArea {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-display);
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .lives-pips span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--bad);
+    margin-left: 3px;
+  }
+  .lives-pips span.spent { background: var(--border); }
+
+  .timer-track {
+    height: 4px;
+    background: var(--border);
+    margin-bottom: 20px;
+  }
+
+  .timer-fill {
+    height: 100%;
+    background: var(--amber);
+    transition: width 0.1s linear;
+  }
+
+  #qPrompt {
+    font-size: 17px;
+    margin: 0 0 18px;
+    line-height: 1.4;
+  }
+
+  #qOptions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  #qOptions button {
+    text-align: left;
+  }
+
+  .correct-opt {
+    border-color: var(--good) !important;
+    color: var(--good) !important;
+  }
+  .wrong-opt {
+    border-color: var(--bad) !important;
+    color: var(--bad) !important;
+  }
+
+  #feedback {
+    font-size: 14px;
+    min-height: 20px;
+  }
+  #feedback .good { color: var(--good); font-weight: 700; }
+  #feedback .bad { color: var(--bad); font-weight: 700; }
+
+  .domain-pick {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  #endScreen {
+    text-align: center;
+  }
+
+  #endScreen h2 {
+    font-family: var(--font-display);
+    color: var(--amber);
+    letter-spacing: 1px;
+  }
+
+  .end-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  .hidden { display: none !important; }
+
+  .back-row {
+    margin-bottom: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="crt-overlay"></div>
+
+<div id="app">
+  <header class="marquee">
+    <h1>SECURITY+ ARCADE</h1>
+    <p>SY0-701 EXAM PREP — INSERT KNOWLEDGE TO CONTINUE</p>
+  </header>
+
+  <main id="arcadeFloor"></main>
+
+  <section id="gameArea" class="hidden">
+    <div class="back-row">
+      <button id="backToFloorBtn">&larr; Back to arcade</button>
+    </div>
+
+    <div id="domainPickScreen" class="hidden">
+      <p style="color:var(--text-dim); font-size:14px; margin-bottom:14px;">Choose a domain to drill.</p>
+      <div class="domain-pick" id="domainButtons"></div>
+    </div>
+
+    <div id="playScreen" class="hidden">
+      <div class="hud">
+        <span id="hudLeft"></span>
+        <span id="hudLives" class="lives-pips"></span>
+        <span id="hudScore"></span>
+      </div>
+      <div class="timer-track"><div class="timer-fill" id="timerFill" style="width:100%;"></div></div>
+      <p id="qPrompt"></p>
+      <div id="qOptions"></div>
+      <p id="feedback"></p>
+    </div>
+
+    <div id="endScreen" class="hidden">
+      <h2 id="endTitle"></h2>
+      <p id="endDetail" style="color:var(--text-dim);"></p>
+      <p id="endHighScore" style="color:var(--amber);"></p>
+      <div class="end-actions">
+        <button id="playAgainBtn" class="play-btn">Play again</button>
+        <button id="endBackBtn">Back to arcade</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* =========================================================
+   QUESTION BANKS
+   ========================================================= */
+
+const QUESTION_BANK = [
+  // ---- General Security Concepts ----
+  {domain:"General Security", p:"What does the 'A' in the CIA triad stand for?", opts:["Authentication","Availability","Authorization","Accounting"], c:1},
+  {domain:"General Security", p:"Which AAA element specifically involves logging what a user did?", opts:["Authentication","Authorization","Accounting","Auditing"], c:2},
+  {domain:"General Security", p:"A control implemented via written policy mandating specific behavior is which control type?", opts:["Preventive","Detective","Directive","Compensating"], c:2},
+  {domain:"General Security", p:"Which encryption approach is faster but requires securely sharing a single key?", opts:["Asymmetric","Symmetric","Hashing","Tokenization"], c:1},
+  {domain:"General Security", p:"What is the primary purpose of a digital signature?", opts:["Compress the message","Verify authenticity and integrity","Speed up transmission","Hide the sender's identity"], c:1},
+  {domain:"General Security", p:"Under least privilege, access should be granted based on:", opts:["Seniority","Minimum necessary for the job function","Department budget","Personal request"], c:1},
+  {domain:"General Security", p:"The core motto of Zero Trust architecture is:", opts:["Defense in depth first","Never trust, always verify","Least privilege only","Segregation of duties"], c:1},
+  {domain:"General Security", p:"What is the primary purpose of a PKI?", opts:["Block malware","Issue, manage, and revoke digital certificates","Encrypt Wi-Fi traffic only","Monitor network bandwidth"], c:1},
+  {domain:"General Security", p:"Non-repudiation means:", opts:["A user can deny performing an action","A user cannot deny having performed an action","Data cannot be read by anyone","Data is automatically backed up"], c:1},
+  {domain:"General Security", p:"Hashing is primarily used to:", opts:["Encrypt data reversibly","Verify data integrity","Compress large files","Authenticate network devices"], c:1},
+  {domain:"General Security", p:"The purpose of change management is to:", opts:["Speed up deployments with no review","Control and document changes to reduce risk","Eliminate the need for testing","Replace incident response"], c:1},
+  {domain:"General Security", p:"A firewall belongs to which security control category?", opts:["Managerial","Physical","Technical","Operational"], c:2},
+  {domain:"General Security", p:"'Something you have' as an MFA factor is best exemplified by:", opts:["A password","A fingerprint","A hardware token or phone","A security question"], c:2},
+  {domain:"General Security", p:"Which data classification level is intended for anyone to view?", opts:["Confidential","Restricted","Public","Critical"], c:2},
+  {domain:"General Security", p:"A secure baseline is best described as:", opts:["A random configuration","The standard minimum secure configuration for a system","A backup schedule","An incident response plan"], c:1},
+
+  // ---- Threats & Vulnerabilities ----
+  {domain:"Threats & Vulns", p:"Malware that encrypts a victim's files and demands payment is called:", opts:["Spyware","Ransomware","Rootkit","Adware"], c:1},
+  {domain:"Threats & Vulns", p:"An attack where a third party secretly intercepts communication between two parties is:", opts:["On-path (Man-in-the-Middle)","Replay attack","Buffer overflow","Directory traversal"], c:0},
+  {domain:"Threats & Vulns", p:"Which social engineering technique specifically targets executives via email?", opts:["Vishing","Smishing","Whaling","Pharming"], c:2},
+  {domain:"Threats & Vulns", p:"A publicly known vulnerability with no vendor patch available yet is a(n):", opts:["CVE","Zero-day","False positive","IOA"], c:1},
+  {domain:"Threats & Vulns", p:"Which attack overwhelms a program's memory to execute arbitrary code or crash it?", opts:["SQL Injection","Buffer overflow","XSS","CSRF"], c:1},
+  {domain:"Threats & Vulns", p:"Gathering information about a target before an attack is called:", opts:["Exploitation","Reconnaissance","Exfiltration","Weaponization"], c:1},
+  {domain:"Threats & Vulns", p:"Malware that self-replicates across a network without any user action is a:", opts:["Virus","Worm","Trojan","Logic bomb"], c:1},
+  {domain:"Threats & Vulns", p:"Injecting malicious SQL commands into an input field to manipulate a database query is:", opts:["XSS","SQL Injection","CSRF","LDAP Injection"], c:1},
+  {domain:"Threats & Vulns", p:"An attack that injects malicious JavaScript into a trusted site, later executed in victims' browsers, is:", opts:["SQL Injection","Cross-Site Scripting (XSS)","Directory Traversal","Buffer Overflow"], c:1},
+  {domain:"Threats & Vulns", p:"A social engineering attack conducted over a phone call is called:", opts:["Smishing","Vishing","Whaling","Tailgating"], c:1},
+  {domain:"Threats & Vulns", p:"Which threat actor type is well-funded, highly sophisticated, and linked to long-term espionage?", opts:["Script kiddie","Hacktivist","Advanced Persistent Threat (APT)","Insider threat (negligent)"], c:2},
+  {domain:"Threats & Vulns", p:"An employee misusing legitimate access for malicious purposes is an example of a(n):", opts:["Zero-day","Insider threat","Supply chain attack","Watering hole attack"], c:1},
+  {domain:"Threats & Vulns", p:"Registering a misspelled version of a popular domain to trick users is called:", opts:["Typosquatting","Pharming","Smishing","Tailgating"], c:0},
+  {domain:"Threats & Vulns", p:"Using credentials leaked from one breach to try logging into unrelated accounts is called:", opts:["Password spraying","Credential stuffing","Brute forcing","Pass-the-hash"], c:1},
+  {domain:"Threats & Vulns", p:"Compromising a website frequently visited by a specific target group is a:", opts:["Watering hole attack","Supply chain attack","Whaling attack","Pretexting attack"], c:0},
+
+  // ---- Security Architecture ----
+  {domain:"Architecture", p:"Which network device operates primarily at Layer 2 using MAC addresses?", opts:["Router","Switch","Firewall","Load balancer"], c:1},
+  {domain:"Architecture", p:"A firewall that tracks the state of active connections is called a:", opts:["Packet-filtering firewall","Stateful inspection firewall","Proxy firewall","WAF"], c:1},
+  {domain:"Architecture", p:"Which cloud service model gives the customer the LEAST infrastructure management responsibility?", opts:["IaaS","PaaS","SaaS","On-premises"], c:2},
+  {domain:"Architecture", p:"A Web Application Firewall (WAF) specifically protects against:", opts:["Physical intrusion","Attacks targeting web applications (e.g. SQLi, XSS)","Wireless jamming","Power outages"], c:1},
+  {domain:"Architecture", p:"Which VPN type connects two entire networks together?", opts:["Remote access VPN","Clientless VPN","Site-to-site VPN","SSL VPN"], c:2},
+  {domain:"Architecture", p:"In the cloud shared responsibility model, who secures the customer's data and access configuration?", opts:["The cloud provider only","The customer","A third-party auditor","No one, it's automatic"], c:1},
+  {domain:"Architecture", p:"Which RAID level uses striping with a single distributed parity block, tolerating 1 drive failure?", opts:["RAID 0","RAID 1","RAID 5","RAID 6"], c:2},
+  {domain:"Architecture", p:"Which disaster recovery site is fully operational and ready for near-immediate failover?", opts:["Cold site","Warm site","Hot site","Cloud site"], c:2},
+  {domain:"Architecture", p:"ZTNA is best described as a technology that:", opts:["Replaces traditional VPN with per-app, identity-verified access","Encrypts data at rest","Manages password rotation","Filters spam email"], c:0},
+  {domain:"Architecture", p:"A DMZ exists to:", opts:["Host internal-only systems","Host internet-facing systems isolated from the internal network","Replace the need for a firewall","Store encryption keys"], c:1},
+  {domain:"Architecture", p:"Micro-segmentation is used to:", opts:["Increase bandwidth","Divide a network into small isolated zones to limit lateral movement","Replace MFA","Reduce the number of VLANs"], c:1},
+  {domain:"Architecture", p:"TLS provides integrity primarily through:", opts:["MAC (message authentication code) checks","Firewall rules","VLAN tagging","Physical security"], c:0},
+  {domain:"Architecture", p:"IPSec tunnel mode encrypts:", opts:["Only the payload","The entire packet, including the header","Only the destination IP","Nothing, it only authenticates"], c:1},
+  {domain:"Architecture", p:"A key security risk of containerization is:", opts:["Too much isolation","Shared OS kernel across containers","No networking capability","Inability to patch"], c:1},
+  {domain:"Architecture", p:"SASE combines SD-WAN with:", opts:["Only antivirus","Cloud-delivered security services like CASB, SWG, and ZTNA","Physical security cameras","Only VPN"], c:1},
+
+  // ---- Security Operations ----
+  {domain:"Operations", p:"Which tool centralizes and correlates logs from many sources for real-time alerting?", opts:["EDR","SIEM","DLP","CASB"], c:1},
+  {domain:"Operations", p:"What is the first phase of the incident response lifecycle?", opts:["Containment","Preparation","Eradication","Identification"], c:1},
+  {domain:"Operations", p:"Which backup type copies all selected data every time it runs?", opts:["Incremental","Differential","Full","Snapshot"], c:2},
+  {domain:"Operations", p:"Which access control model lets the resource owner decide who gets access?", opts:["MAC","DAC","RBAC","ABAC"], c:1},
+  {domain:"Operations", p:"An Indicator of Compromise (IOC) refers to evidence found:", opts:["Before an attack begins","While an attack is actively happening","After a compromise has occurred","Only in encrypted traffic"], c:2},
+  {domain:"Operations", p:"Which activity actively attempts to exploit a vulnerability to confirm real-world risk?", opts:["Vulnerability scan","Asset inventory","Penetration test","Patch management"], c:2},
+  {domain:"Operations", p:"EDR stands for:", opts:["Endpoint Detection and Response","Encrypted Data Recovery","External Device Registry","Enterprise Data Router"], c:0},
+  {domain:"Operations", p:"During digital forensics, the order of volatility means you should collect evidence:", opts:["In alphabetical order","Most volatile first (e.g. RAM before disk)","Least volatile first","In any order, it doesn't matter"], c:1},
+  {domain:"Operations", p:"Chain of custody exists to:", opts:["Speed up investigations","Document evidence handling to preserve its integrity for legal use","Replace encryption","Automate patching"], c:1},
+  {domain:"Operations", p:"MTTR stands for:", opts:["Mean Time to Repair","Maximum Time to Recover","Minimum Threat Tolerance Rating","Mean Threat Response Rate"], c:0},
+  {domain:"Operations", p:"RTO measures:", opts:["How much data loss is tolerable","How long a system can be down before it must be restored","How often backups run","How many drives can fail"], c:1},
+  {domain:"Operations", p:"RPO measures:", opts:["How long recovery takes","How much data loss (in time) is tolerable","How many lives a RAID array survives","Network bandwidth"], c:1},
+  {domain:"Operations", p:"SOAR is best described as a platform that:", opts:["Only stores logs passively","Automates and orchestrates multi-tool incident response actions","Replaces the need for a SOC","Only scans for vulnerabilities"], c:1},
+  {domain:"Operations", p:"Isolating an infected host from the network is part of which IR phase?", opts:["Preparation","Identification","Containment","Lessons Learned"], c:2},
+  {domain:"Operations", p:"A False Negative in IDS/IPS terms means:", opts:["An alert fired for a real attack","An alert fired with no real attack","No alert fired and there was no attack","No alert fired, but a real attack occurred"], c:3},
+
+  // ---- Governance & Compliance ----
+  {domain:"Governance", p:"An SLA primarily defines:", opts:["Confidentiality terms only","Guaranteed uptime and response times from a vendor","Employee onboarding steps","Password complexity rules"], c:1},
+  {domain:"Governance", p:"Annualized Loss Expectancy (ALE) is calculated as:", opts:["SLE x ARO","CVSS x RTO","RPO x RTO","ARO x MTBF"], c:0},
+  {domain:"Governance", p:"Purchasing cyber insurance is an example of which risk response strategy?", opts:["Acceptance","Avoidance","Transfer","Mitigation"], c:2},
+  {domain:"Governance", p:"Which U.S. regulation protects healthcare patient information?", opts:["GDPR","HIPAA","PCI DSS","SOX"], c:1},
+  {domain:"Governance", p:"The primary purpose of a Business Impact Analysis (BIA) is to:", opts:["Encrypt sensitive data","Identify critical business functions and the impact of their disruption","Replace the incident response plan","Configure firewall rules"], c:1},
+  {domain:"Governance", p:"NIST CSF's six core functions include Govern, Identify, Protect, Detect, Respond, and:", opts:["Recover","Report","Remediate","Restrict"], c:0},
+  {domain:"Governance", p:"GDPR primarily governs:", opts:["U.S. credit card data","Protection of personal data for EU residents","Healthcare data in Canada","Only government agencies"], c:1},
+  {domain:"Governance", p:"PCI DSS applies specifically to organizations that:", opts:["Handle healthcare records","Store, process, or transmit credit card data","Operate only in the EU","Provide cloud hosting"], c:1},
+  {domain:"Governance", p:"Choosing not to address a risk because mitigation costs more than the potential impact is called risk:", opts:["Transfer","Avoidance","Acceptance","Mitigation"], c:2},
+  {domain:"Governance", p:"Vetting a vendor's security posture before engaging them is called:", opts:["Due diligence","Risk transfer","Data sovereignty","Non-repudiation"], c:0},
+  {domain:"Governance", p:"An NDA primarily exists to:", opts:["Guarantee uptime","Protect confidential information from disclosure","Define recovery objectives","Assign risk to a third party"], c:1},
+  {domain:"Governance", p:"Being compliant with a regulation means an organization is:", opts:["Automatically fully secure","Meeting a minimum required standard, which does not guarantee security","Exempt from audits forever","Immune to breaches"], c:1},
+  {domain:"Governance", p:"Data sovereignty refers to the idea that:", opts:["Data belongs to whoever created it","Data is subject to the laws of the country where it is physically stored","Data cannot cross any border ever","Only the CEO can access sensitive data"], c:1},
+  {domain:"Governance", p:"GDPR's 'right to be forgotten' allows individuals to:", opts:["Demand a company disclose all data collected on them only","Request their personal data be deleted","Sue for unlimited damages automatically","Access another user's data"], c:1},
+  {domain:"Governance", p:"The key difference between Business Continuity (BC) and Disaster Recovery (DR) is:", opts:["They are identical","BC keeps the business running; DR restores IT systems","DR is only for natural disasters","BC only applies to IT staff"], c:1}
+];
+
+const ACRONYM_BANK = [
+  {a:"CIA", d:"Confidentiality, Integrity, Availability"},
+  {a:"AAA", d:"Authentication, Authorization, Accounting"},
+  {a:"SIEM", d:"Security Information and Event Management"},
+  {a:"IDS", d:"Intrusion Detection System"},
+  {a:"IPS", d:"Intrusion Prevention System"},
+  {a:"MFA", d:"Multifactor Authentication"},
+  {a:"VPN", d:"Virtual Private Network"},
+  {a:"TLS", d:"Transport Layer Security"},
+  {a:"PKI", d:"Public Key Infrastructure"},
+  {a:"RBAC", d:"Role-Based Access Control"},
+  {a:"DAC", d:"Discretionary Access Control"},
+  {a:"MAC", d:"Mandatory Access Control"},
+  {a:"ABAC", d:"Attribute-Based Access Control"},
+  {a:"CVE", d:"Common Vulnerabilities and Exposures"},
+  {a:"CVSS", d:"Common Vulnerability Scoring System"},
+  {a:"SOAR", d:"Security Orchestration, Automation, and Response"},
+  {a:"EDR", d:"Endpoint Detection and Response"},
+  {a:"XDR", d:"Extended Detection and Response"},
+  {a:"DLP", d:"Data Loss Prevention"},
+  {a:"WAF", d:"Web Application Firewall"},
+  {a:"NGFW", d:"Next-Generation Firewall"},
+  {a:"IAM", d:"Identity and Access Management"},
+  {a:"SSO", d:"Single Sign-On"},
+  {a:"SAML", d:"Security Assertion Markup Language"},
+  {a:"OAuth", d:"Open Authorization"},
+  {a:"RADIUS", d:"Remote Authentication Dial-In User Service"},
+  {a:"CASB", d:"Cloud Access Security Broker"},
+  {a:"ZTNA", d:"Zero Trust Network Access"},
+  {a:"SASE", d:"Secure Access Service Edge"},
+  {a:"RTO", d:"Recovery Time Objective"},
+  {a:"RPO", d:"Recovery Point Objective"},
+  {a:"MTTR", d:"Mean Time to Repair"},
+  {a:"MTBF", d:"Mean Time Between Failures"},
+  {a:"BCP", d:"Business Continuity Planning"},
+  {a:"BIA", d:"Business Impact Analysis"},
+  {a:"DRP", d:"Disaster Recovery Plan"},
+  {a:"SLA", d:"Service-Level Agreement"},
+  {a:"NDA", d:"Non-Disclosure Agreement"},
+  {a:"GDPR", d:"General Data Protection Regulation"},
+  {a:"PCI DSS", d:"Payment Card Industry Data Security Standard"},
+  {a:"HIPAA", d:"Health Insurance Portability and Accountability Act"},
+  {a:"APT", d:"Advanced Persistent Threat"},
+  {a:"TTP", d:"Tactics, Techniques, and Procedures"},
+  {a:"IOC", d:"Indicator of Compromise"},
+  {a:"CRC", d:"Cyclical Redundancy Check"},
+  {a:"AES", d:"Advanced Encryption Standard"},
+  {a:"RSA", d:"Rivest, Shamir, Adleman"},
+  {a:"HSM", d:"Hardware Security Module"},
+  {a:"TPM", d:"Trusted Platform Module"},
+  {a:"PAM", d:"Privileged Access Management"},
+  {a:"NAC", d:"Network Access Control"}
+];
+
+/* =========================================================
+   UTILITIES
+   ========================================================= */
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function getHighScore(key) {
+  return parseInt(localStorage.getItem(key) || "0", 10);
+}
+
+function setHighScoreIfBetter(key, value) {
+  const current = getHighScore(key);
+  if (value > current) {
+    localStorage.setItem(key, String(value));
+    return true;
+  }
+  return false;
+}
+
+function buildAcronymQuestion(item) {
+  const pool = ACRONYM_BANK.filter(x => x.a !== item.a);
+  const distractors = shuffle(pool).slice(0, 3).map(x => x.d);
+  const opts = shuffle([item.d, ...distractors]);
+  const c = opts.indexOf(item.d);
+  return { p: "What does " + item.a + " stand for?", opts, c };
+}
+
+/* =========================================================
+   ARCADE FLOOR (MENU)
+   ========================================================= */
+
+const CABINETS = [
+  {
+    id: "speed",
+    title: "SPEED ROUND",
+    desc: "15 mixed questions from all domains. 15 seconds each. 3 lives. Streak bonuses.",
+    highScoreKey: "sp_arcade_hs_speed"
+  },
+  {
+    id: "domain",
+    title: "DOMAIN PRACTICE",
+    desc: "Pick one exam domain and drill 10 focused questions at a relaxed pace.",
+    highScoreKey: null
+  },
+  {
+    id: "survival",
+    title: "SURVIVAL MODE",
+    desc: "Endless questions, 3 lives. The clock gets shorter as your streak grows.",
+    highScoreKey: "sp_arcade_hs_survival"
+  },
+  {
+    id: "acronym",
+    title: "ACRONYM BLITZ",
+    desc: "12 rapid-fire acronym questions. 12 seconds each. 3 lives.",
+    highScoreKey: "sp_arcade_hs_acronym"
+  }
+];
+
+function renderArcadeFloor() {
+  const floor = document.getElementById("arcadeFloor");
+  floor.innerHTML = "";
+  CABINETS.forEach(cab => {
+    const card = document.createElement("div");
+    card.className = "cabinet";
+
+    const marquee = document.createElement("div");
+    marquee.className = "cabinet-marquee";
+    marquee.textContent = cab.title;
+    card.appendChild(marquee);
+
+    const screen = document.createElement("div");
+    screen.className = "cabinet-screen";
+
+    const desc = document.createElement("p");
+    desc.textContent = cab.desc;
+    screen.appendChild(desc);
+
+    if (cab.highScoreKey) {
+      const hs = document.createElement("p");
+      hs.className = "highscore";
+      hs.textContent = "HIGH SCORE: " + getHighScore(cab.highScoreKey);
+      screen.appendChild(hs);
+    }
+
+    const playBtn = document.createElement("button");
+    playBtn.className = "play-btn";
+    playBtn.textContent = "Insert coin ▸ Play";
+    playBtn.addEventListener("click", () => enterCabinet(cab.id));
+    screen.appendChild(playBtn);
+
+    card.appendChild(screen);
+    floor.appendChild(card);
+  });
+}
+
+function enterCabinet(id) {
+  document.getElementById("arcadeFloor").classList.add("hidden");
+  document.getElementById("gameArea").classList.remove("hidden");
+  document.getElementById("domainPickScreen").classList.add("hidden");
+  document.getElementById("playScreen").classList.add("hidden");
+  document.getElementById("endScreen").classList.add("hidden");
+
+  if (id === "speed") {
+    beginRound({
+      mode: "speed",
+      queueMode: "fixed",
+      queue: shuffle(QUESTION_BANK).slice(0, 15),
+      timerSeconds: 15,
+      livesLimit: 3,
+      isAcronym: false,
+      highScoreKey: "sp_arcade_hs_speed",
+      hudLabel: "SPEED ROUND"
+    });
+  } else if (id === "survival") {
+    beginRound({
+      mode: "survival",
+      queueMode: "endless",
+      pool: QUESTION_BANK,
+      bag: shuffle(QUESTION_BANK),
+      baseTimer: 15,
+      minTimer: 8,
+      decreasing: true,
+      livesLimit: 3,
+      isAcronym: false,
+      highScoreKey: "sp_arcade_hs_survival",
+      hudLabel: "SURVIVAL MODE"
+    });
+  } else if (id === "acronym") {
+    beginRound({
+      mode: "acronym",
+      queueMode: "fixed",
+      queue: shuffle(ACRONYM_BANK).slice(0, 12),
+      timerSeconds: 12,
+      livesLimit: 3,
+      isAcronym: true,
+      highScoreKey: "sp_arcade_hs_acronym",
+      hudLabel: "ACRONYM BLITZ"
+    });
+  } else if (id === "domain") {
+    showDomainPicker();
+  }
+}
+
+function showDomainPicker() {
+  document.getElementById("domainPickScreen").classList.remove("hidden");
+  const domains = [...new Set(QUESTION_BANK.map(q => q.domain))];
+  const box = document.getElementById("domainButtons");
+  box.innerHTML = "";
+  domains.forEach(dom => {
+    const btn = document.createElement("button");
+    btn.textContent = dom;
+    btn.addEventListener("click", () => {
+      document.getElementById("domainPickScreen").classList.add("hidden");
+      const pool = QUESTION_BANK.filter(q => q.domain === dom);
+      beginRound({
+        mode: "domain",
+        queueMode: "fixed",
+        queue: shuffle(pool).slice(0, 10),
+        timerSeconds: 20,
+        livesLimit: null,
+        isAcronym: false,
+        highScoreKey: "sp_arcade_hs_domain_" + dom.replace(/\s+/g, "_"),
+        hudLabel: dom.toUpperCase() + " PRACTICE"
+      });
+    });
+    box.appendChild(btn);
+  });
+}
+
+document.getElementById("backToFloorBtn").addEventListener("click", () => {
+  clearInterval(game && game.timerId);
+  document.getElementById("gameArea").classList.add("hidden");
+  document.getElementById("arcadeFloor").classList.remove("hidden");
+  renderArcadeFloor();
+});
+
+/* =========================================================
+   GAME ENGINE
+   ========================================================= */
+
+let game = null;
+
+function beginRound(cfg) {
+  game = {
+    cfg,
+    idx: 0,
+    score: 0,
+    streak: 0,
+    correctCount: 0,
+    lives: cfg.livesLimit === null ? Infinity : cfg.livesLimit,
+    timerId: null,
+    remaining: 0
+  };
+  document.getElementById("playScreen").classList.remove("hidden");
+  document.getElementById("endScreen").classList.add("hidden");
+  nextQuestion();
+}
+
+function getNextRawQuestion() {
+  const cfg = game.cfg;
+  if (cfg.queueMode === "fixed") {
+    if (game.idx >= cfg.queue.length) return null;
+    return cfg.queue[game.idx];
+  } else {
+    if (cfg.bag.length === 0) cfg.bag = shuffle(cfg.pool);
+    return cfg.bag.pop();
+  }
+}
+
+function currentTimerSeconds() {
+  const cfg = game.cfg;
+  if (cfg.decreasing) {
+    const reduction = Math.floor(game.correctCount / 5);
+    return Math.max(cfg.minTimer, cfg.baseTimer - reduction);
+  }
+  return cfg.timerSeconds;
+}
+
+function nextQuestion() {
+  const raw = getNextRawQuestion();
+  if (!raw) return endRound(true);
+
+  const q = game.cfg.isAcronym ? buildAcronymQuestion(raw) : raw;
+  game.currentQ = q;
+
+  const totalLabel = game.cfg.queueMode === "fixed"
+    ? "Q " + (game.idx + 1) + " / " + game.cfg.queue.length
+    : "Q " + (game.idx + 1) + " (survival)";
+  document.getElementById("hudLeft").textContent = totalLabel;
+  document.getElementById("hudScore").textContent = "SCORE " + game.score;
+  renderLives();
+
+  document.getElementById("qPrompt").textContent = q.p;
+  const optBox = document.getElementById("qOptions");
+  optBox.innerHTML = "";
+  q.opts.forEach((opt, oi) => {
+    const b = document.createElement("button");
+    b.textContent = opt;
+    b.addEventListener("click", () => answer(oi));
+    optBox.appendChild(b);
+  });
+  document.getElementById("feedback").innerHTML = "";
+
+  game.remaining = currentTimerSeconds();
+  document.getElementById("timerFill").style.width = "100%";
+  clearInterval(game.timerId);
+  const totalTime = game.remaining;
+  game.timerId = setInterval(() => {
+    game.remaining -= 0.1;
+    const pct = Math.max(0, (game.remaining / totalTime) * 100);
+    document.getElementById("timerFill").style.width = pct + "%";
+    if (game.remaining <= 0) {
+      clearInterval(game.timerId);
+      answer(-1);
+    }
+  }, 100);
+}
+
+function renderLives() {
+  const el = document.getElementById("hudLives");
+  if (game.lives === Infinity) { el.innerHTML = ""; return; }
+  el.innerHTML = "";
+  for (let i = 0; i < game.cfg.livesLimit; i++) {
+    const pip = document.createElement("span");
+    if (i >= game.lives) pip.className = "spent";
+    el.appendChild(pip);
+  }
+}
+
+function answer(picked) {
+  clearInterval(game.timerId);
+  const q = game.currentQ;
+  const optBox = document.getElementById("qOptions");
+  const buttons = optBox.querySelectorAll("button");
+  buttons.forEach((b, bi) => {
+    b.disabled = true;
+    if (bi === q.c) b.classList.add("correct-opt");
+    else if (bi === picked) b.classList.add("wrong-opt");
+  });
+
+  const correct = picked === q.c;
+  const fb = document.getElementById("feedback");
+  if (correct) {
+    game.streak += 1;
+    game.correctCount += 1;
+    const bonus = (game.streak - 1) * 2;
+    game.score += 10 + bonus;
+    fb.innerHTML = '<span class="good">Correct.</span> +' + (10 + bonus) + ' points' + (game.streak > 1 ? ' (streak x' + game.streak + ')' : '') + '.';
+  } else {
+    game.streak = 0;
+    if (game.lives !== Infinity) game.lives -= 1;
+    fb.innerHTML = picked === -1 ? '<span class="bad">Time is up.</span>' : '<span class="bad">Not quite.</span>';
+  }
+
+  document.getElementById("hudScore").textContent = "SCORE " + game.score;
+  renderLives();
+  game.idx += 1;
+
+  setTimeout(() => {
+    if (game.lives !== Infinity && game.lives <= 0) {
+      endRound(false);
+    } else {
+      nextQuestion();
+    }
+  }, 1200);
+}
+
+function endRound(cleared) {
+  document.getElementById("playScreen").classList.add("hidden");
+  document.getElementById("endScreen").classList.remove("hidden");
+  document.getElementById("endTitle").textContent = cleared ? "ROUND CLEARED" : "GAME OVER";
+
+  let detail = "Final score: " + game.score;
+  if (game.cfg.mode === "domain") {
+    detail = "Correct: " + game.correctCount + " / " + game.cfg.queue.length;
+  } else if (game.cfg.queueMode === "endless") {
+    detail = "Survived " + game.idx + " question" + (game.idx === 1 ? "" : "s") + " — final score: " + game.score;
+  }
+  document.getElementById("endDetail").textContent = detail;
+
+  const hsEl = document.getElementById("endHighScore");
+  if (game.cfg.highScoreKey) {
+    const metric = game.cfg.mode === "domain" ? game.correctCount : game.score;
+    const isNew = setHighScoreIfBetter(game.cfg.highScoreKey, metric);
+    hsEl.textContent = isNew ? "NEW HIGH SCORE!" : "High score: " + getHighScore(game.cfg.highScoreKey);
+  } else {
+    hsEl.textContent = "";
+  }
+}
+
+document.getElementById("playAgainBtn").addEventListener("click", () => {
+  const modeId = game.cfg.mode === "domain" ? "domain" : game.cfg.mode;
+  document.getElementById("endScreen").classList.add("hidden");
+  if (modeId === "domain") {
+    showDomainPicker();
+  } else {
+    enterCabinet(modeId);
+  }
+});
+
+document.getElementById("endBackBtn").addEventListener("click", () => {
+  document.getElementById("gameArea").classList.add("hidden");
+  document.getElementById("arcadeFloor").classList.remove("hidden");
+  renderArcadeFloor();
+});
+
+/* =========================================================
+   INIT
+   ========================================================= */
+renderArcadeFloor();
+</script>
+
+</body>
+</html>
